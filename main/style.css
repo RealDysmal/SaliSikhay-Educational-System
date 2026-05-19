@@ -1,4 +1,4 @@
-/* Base Reset and Font */
+
 * {
     margin: 0;
     padding: 0;
@@ -6,9 +6,8 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Light Purple Background */
 body {
-    background-color: #f3e8ff; /* Soft lavender */
+    background-color: #f3e8ff; 
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,19 +15,19 @@ body {
     color: #333;
 }
 
-/* Centered White Container */
+
 .container {
     background-color: #ffffff;
     width: 100%;
     max-width: 400px;
     padding: 40px 30px;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(107, 33, 168, 0.1); /* Subtle purple shadow */
+    box-shadow: 0 8px 24px rgba(107, 33, 168, 0.1); 
 }
 
 h2 {
     text-align: center;
-    color: #581c87; /* Deep purple */
+    color: #581c87; 
     margin-bottom: 8px;
 }
 
@@ -39,7 +38,7 @@ h2 {
     margin-bottom: 24px;
 }
 
-/* Form Inputs */
+
 .input-group {
     margin-bottom: 16px;
     display: flex;
@@ -63,10 +62,10 @@ h2 {
 }
 
 .input-group input:focus {
-    border-color: #7e22ce; /* Highlight border on focus */
+    border-color: #7e22ce; 
 }
 
-/* Password Wrapper for Eye Icon */
+
 .password-wrapper {
     position: relative;
     display: flex;
@@ -75,7 +74,7 @@ h2 {
 
 .password-wrapper input {
     width: 100%;
-    padding-right: 40px; /* Make room for the icon */
+    padding-right: 40px; 
 }
 
 .toggle-password {
@@ -91,11 +90,11 @@ h2 {
     opacity: 1;
 }
 
-/* Buttons and Links */
+
 .primary-btn {
     width: 100%;
     padding: 12px;
-    background-color: #7e22ce; /* Main purple */
+    background-color: #7e22ce; 
     color: white;
     border: none;
     border-radius: 6px;
@@ -107,7 +106,7 @@ h2 {
 }
 
 .primary-btn:hover {
-    background-color: #6b21a8; /* Darker purple on hover */
+    background-color: #6b21a8; 
 }
 
 .footer-text {
@@ -128,7 +127,7 @@ h2 {
 
 /* Error Messages */
 .error-message {
-    color: #dc2626; /* Red */
+    color: #dc2626; 
     font-size: 0.85rem;
     text-align: center;
     min-height: 20px;
