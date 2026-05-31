@@ -180,7 +180,7 @@ def generate_quiz_from_topic(topic, num_questions=5):
         Create full, meaningful answer options and mark the correct answer clearly.
         Do not include any markdown, comments, or extra text outside the JSON object."""
         
-        response_text = _call_gemini_api(prompt, model='gemini-2.5-flash', temperature=0.2, max_output_tokens=900)
+        response_text = _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=900)
         print(f"📝 Gemini response received: {response_text[:100]}...")
         
         response_text = _extract_json_from_text(response_text)
@@ -203,7 +203,7 @@ def generate_quiz_from_topic(topic, num_questions=5):
         if related_question_count < max(1, num_questions // 2):
             print('⚠️ Topic relevance low, retrying with stronger topic constraints')
             retry_prompt = prompt + '\n\nRegenerate the quiz now, ensuring every question uses the topic or primary topic keywords in the question text.'
-            retry_text = _call_gemini_api(retry_prompt, model='gemini-2.5-flash', temperature=0.1, max_output_tokens=900)
+            retry_text = _call_gemini_api(retry_prompt, model='gemini-3.5-flash', temperature=0.1, max_output_tokens=900)
             print(f"📝 Gemini retry response received: {retry_text[:100]}...")
             retry_text = _extract_json_from_text(retry_text)
             quiz_data = json.loads(retry_text)
@@ -280,7 +280,7 @@ def generate_quiz_from_text(text_content, num_questions=5):
         Make every question clearly based on the provided text and avoid unrelated details.
         Do not include any markdown, comments, or extra text outside the JSON object."""
         
-        response_text = _call_gemini_api(prompt, model='gemini-2.5-flash', temperature=0.2, max_output_tokens=900)
+        response_text = _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=900)
         print(f"📝 Gemini response received: {response_text[:100]}...")
         
         response_text = _extract_json_from_text(response_text)
@@ -296,7 +296,7 @@ def generate_quiz_from_text(text_content, num_questions=5):
         if related_question_count < max(1, num_questions // 2):
             print('⚠️ Document relevance low, retrying with stronger document focus')
             retry_prompt = prompt + '\n\nRegenerate the quiz now, ensuring every question is clearly based on the provided document text and nothing else.'
-            retry_text = _call_gemini_api(retry_prompt, model='gemini-2.5-flash', temperature=0.1, max_output_tokens=900)
+            retry_text = _call_gemini_api(retry_prompt, model='gemini-3.5-flash', temperature=0.1, max_output_tokens=900)
             print(f"📝 Gemini retry response received: {retry_text[:100]}...")
             retry_text = _extract_json_from_text(retry_text)
             quiz_data = json.loads(retry_text)
