@@ -11,7 +11,7 @@ print(f"🔍 AI Service Init: Has valid key = {(Config.GOOGLE_API_KEY.startswith
 
 
 def _call_gemini_api(prompt, model='gemini-2.5-flash', temperature=0.2, max_output_tokens=800, top_p=0.95, top_k=40):
-    if not Config.GOOGLE_API_KEY or not (Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')):
+    if not Config.GOOGLE_API_KEY:
         raise RuntimeError('Google API key missing or invalid. AI quiz generation is disabled.')
 
     url = f"https://generativelanguage.googleapis.com/v1beta2/models/{model}:generate?key={Config.GOOGLE_API_KEY}"
@@ -143,7 +143,7 @@ def generate_quiz_from_topic(topic, num_questions=5):
     """
     print(f"🔵 generate_quiz_from_topic called with topic='{topic}', num_questions={num_questions}")
     
-    if not Config.GOOGLE_API_KEY or not (Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')):
+    if not Config.GOOGLE_API_KEY:
         raise RuntimeError('Google API key missing or invalid. AI quiz generation is disabled.')
     
     try:
@@ -237,7 +237,7 @@ def generate_quiz_from_text(text_content, num_questions=5):
     """
     print(f"🔵 generate_quiz_from_text called with text length={len(text_content)}, num_questions={num_questions}")
     
-    if not Config.GOOGLE_API_KEY or not (Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')):
+    if not Config.GOOGLE_API_KEY:
         raise RuntimeError('Google API key missing or invalid. AI quiz generation is disabled.')
     
     try:
