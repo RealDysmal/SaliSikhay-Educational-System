@@ -18,11 +18,14 @@ if os.path.exists(dotenv_path):
 
 class Config:
     """Flask configuration"""
-    # Use SQLite for local development
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        'DATABASE_URL',
-        'sqlite:///salisikhay.db'
-    )
+    # Resolve database URI: prefer DATABASE_URL (set by Railway when PostgreSQL
+    # is provisioned), fall back to SQLite for local development only.
+    # Railway may supply the legacy "postgres://" scheme; SQLAlchemy 2.x requires
+    # "postgresql://", so we normalise it here.
+    _db_url = os.getenv('DATABASE_URL', 'sqlite:///salisikhay.db')
+    if _db_url.startswith('postgres://'):
+        _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # JWT Configuration
