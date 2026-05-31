@@ -50,18 +50,20 @@ def _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_outp
 
 def _extract_json_from_text(text):
     if not text:
-        return text or ''
-    if "```json" in text:
-        text = text.split("```json")[1].split("```")[0]
-    elif "```" in text:
-        parts = text.split("```")
-        if len(parts) >= 3:
-            text = parts[1]
-    start = text.find('{')
-    end = text.rfind('}')
-    if start != -1 and end != -1 and end > start:
-        return text[start:end + 1].strip()
-    return text.strip()
+        raise ValueError("Empty response")
+
+    # remove markdown
+    text = text.replace("```json", "").replace("```", "").strip()
+
+    # find first full JSON object
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        raise ValueError(f"No JSON found in response:\n{text}")
+
+    json_str = match.group()
+
+    # FINAL SAFE PARSE HERE (important!)
+    return json.loads(json_str)
 
 
 def _validate_quiz_data(quiz_data):
@@ -198,8 +200,7 @@ def generate_quiz_from_topic(topic, num_questions=5):
         response_text = _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=900)
         print(f"📝 Gemini response received: {response_text}...")
         
-        response_text = _extract_json_from_text(response_text)
-        quiz_data = json.loads(response_text)
+        quiz_data = _extract_json_from_text(response_text)
         quiz_data['questions'] = [_normalize_question(q) for q in quiz_data.get('questions', [])]
         
         if len(quiz_data.get('questions', [])) != num_questions:
@@ -220,8 +221,7 @@ def generate_quiz_from_topic(topic, num_questions=5):
             retry_prompt = prompt + '\n\nRegenerate the quiz now, ensuring every question uses the topic or primary topic keywords in the question text.'
             retry_text = _call_gemini_api(retry_prompt, model='gemini-3.5-flash', temperature=0.1, max_output_tokens=900)
             print(f"📝 Gemini retry response received: {retry_text[:100]}...")
-            retry_text = _extract_json_from_text(retry_text)
-            quiz_data = json.loads(retry_text)
+            quiz_data = _extract_json_from_text(retry_text)
             quiz_data['questions'] = [_normalize_question(q) for q in quiz_data.get('questions', [])]
             if len(quiz_data.get('questions', [])) != num_questions:
                 raise ValueError(f'AI retry returned {len(quiz_data.get("questions", []))} questions instead of {num_questions}')
