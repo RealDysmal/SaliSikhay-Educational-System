@@ -10,11 +10,11 @@ print(f"🔍 AI Service Init: Starts with AQ. = {Config.GOOGLE_API_KEY.startswit
 print(f"🔍 AI Service Init: Has valid key = {(Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')) if Config.GOOGLE_API_KEY else False}")
 
 
-def _call_gemini_api(prompt, model='gemini-2.5-flash', temperature=0.2, max_output_tokens=800, top_p=0.95, top_k=40):
+def _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=800, top_p=0.95, top_k=40):
     if not Config.GOOGLE_API_KEY:
         raise RuntimeError('Google API key missing or invalid. AI quiz generation is disabled.')
 
-    url = f"https://generativelanguage.googleapis.com/v1beta2/models/{model}:generate?key={Config.GOOGLE_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={Config.GOOGLE_API_KEY}"
     payload = {
         'prompt': {'text': prompt},
         'temperature': temperature,
