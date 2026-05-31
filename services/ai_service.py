@@ -13,6 +13,49 @@ if Config.GOOGLE_API_KEY:
     genai.configure(api_key=Config.GOOGLE_API_KEY)
 
 
+def _extract_json_from_text(text):
+    if not text:
+        return text or ''
+    if "```json" in text:
+        text = text.split("```json")[1].split("```")[0]
+    elif "```" in text:
+        parts = text.split("```")
+        if len(parts) >= 3:
+            text = parts[1]
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        return text[start:end + 1].strip()
+    return text.strip()
+
+
+def _validate_quiz_data(quiz_data):
+    if not isinstance(quiz_data, dict):
+        return False
+    questions = quiz_data.get('questions')
+    if not isinstance(questions, list) or len(questions) == 0:
+        return False
+    for q in questions:
+        if not isinstance(q, dict):
+            return False
+        if not q.get('question') or not q.get('type') or not q.get('correct_answer'):
+            return False
+        q_type = q.get('type')
+        if q_type == 'multiple_choice':
+            options = q.get('options')
+            if not isinstance(options, dict) or len(options) < 3:
+                return False
+            if str(q.get('correct_answer')) not in options:
+                return False
+        elif q_type == 'true_false':
+            options = q.get('options')
+            if not isinstance(options, dict) or 'true' not in options or 'false' not in options:
+                return False
+            if str(q.get('correct_answer')).lower() not in ['true', 'false']:
+                return False
+    return True
+
+
 def generate_quiz_from_topic(topic, num_questions=5):
     """
     Generate a quiz based on a topic using Google Gemini API
@@ -26,9 +69,9 @@ def generate_quiz_from_topic(topic, num_questions=5):
     try:
         print("🔵 Calling Google Gemini API...")
         
-        prompt = f"""Create a quiz with {num_questions} questions about "{topic}".
+        prompt = f"""You are an expert educational content author. Create {num_questions} high-quality quiz questions about the subject \"{topic}\".
         
-        Return the response in this exact JSON format:
+        Return only valid JSON using this exact schema:
         {{
             "title": "Quiz title",
             "description": "Brief description",
@@ -40,16 +83,19 @@ def generate_quiz_from_topic(topic, num_questions=5):
                     "correct_answer": "A"
                 }},
                 {{
-                    "question": "True or false question?",
+                    "question": "Question text",
                     "type": "true_false",
                     "options": {{"true": "True", "false": "False"}},
                     "correct_answer": "true"
-                }},
-                ...
+                }}
             ]
         }}
         
-        Make the questions varied and educational. Mix question types between multiple_choice and true_false. For true_false questions, always use exactly this format with options as {{"true": "True", "false": "False"}} and correct_answer as either "true" or "false"."""
+        Use a mix of multiple_choice and true_false questions.
+        For multiple_choice questions provide four distinct, plausible answer choices.
+        For true_false questions use exactly: {{"true": "True", "false": "False"}}.
+        Set correct_answer to one of "A", "B", "C", "D" for multiple_choice or "true"/"false" for true_false.
+        Do not include any markdown, comments, or extra text outside the JSON object."""
         
         model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
@@ -57,20 +103,17 @@ def generate_quiz_from_topic(topic, num_questions=5):
         
         print(f"📝 Gemini response received: {response_text[:100]}...")
         
-        # Extract JSON from response (Gemini might wrap it in markdown)
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0].strip()
-        
+        response_text = _extract_json_from_text(response_text)
         quiz_data = json.loads(response_text)
+        
+        if not _validate_quiz_data(quiz_data):
+            raise ValueError('Invalid quiz JSON from AI')
         
         # Ensure true_false questions have proper options
         for q in quiz_data.get('questions', []):
             if q.get('type') == 'true_false':
                 if not q.get('options'):
                     q['options'] = {'true': 'True', 'false': 'False'}
-                # Normalize correct_answer to lowercase
                 if q.get('correct_answer'):
                     q['correct_answer'] = q['correct_answer'].lower()
         
@@ -102,12 +145,12 @@ def generate_quiz_from_text(text_content, num_questions=5):
         
         print("🔵 Calling Google Gemini API for text-based quiz...")
         
-        prompt = f"""Based on the following text, create {num_questions} quiz questions:
+        prompt = f"""You are an expert educational content author. Based on the following text, create {num_questions} high-quality quiz questions:
 
         TEXT:
         {text_content}
         
-        Return the response in this exact JSON format:
+        Return only valid JSON using this exact schema:
         {{
             "title": "Quiz from document",
             "description": "Questions based on the provided document",
@@ -119,16 +162,19 @@ def generate_quiz_from_text(text_content, num_questions=5):
                     "correct_answer": "A"
                 }},
                 {{
-                    "question": "True or false question based on the text?",
+                    "question": "Question text",
                     "type": "true_false",
                     "options": {{"true": "True", "false": "False"}},
                     "correct_answer": "true"
-                }},
-                ...
+                }}
             ]
         }}
         
-        Make questions that test understanding of the document content. For true_false questions, always use exactly this format with options as {{"true": "True", "false": "False"}} and correct_answer as either "true" or "false"."""
+        Use a mix of multiple_choice and true_false questions.
+        For multiple_choice questions provide four distinct, plausible answer choices.
+        For true_false questions use exactly: {{"true": "True", "false": "False"}}.
+        Set correct_answer to one of "A", "B", "C", "D" for multiple_choice or "true"/"false" for true_false.
+        Do not include any markdown, comments, or extra text outside the JSON object."""
         
         model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
@@ -136,20 +182,17 @@ def generate_quiz_from_text(text_content, num_questions=5):
         
         print(f"📝 Gemini response received: {response_text[:100]}...")
         
-        # Extract JSON from response (Gemini might wrap it in markdown)
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0].strip()
-        
+        response_text = _extract_json_from_text(response_text)
         quiz_data = json.loads(response_text)
+        
+        if not _validate_quiz_data(quiz_data):
+            raise ValueError('Invalid quiz JSON from AI')
         
         # Ensure true_false questions have proper options
         for q in quiz_data.get('questions', []):
             if q.get('type') == 'true_false':
                 if not q.get('options'):
                     q['options'] = {'true': 'True', 'false': 'False'}
-                # Normalize correct_answer to lowercase
                 if q.get('correct_answer'):
                     q['correct_answer'] = q['correct_answer'].lower()
         
