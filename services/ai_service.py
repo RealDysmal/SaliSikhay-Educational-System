@@ -1,6 +1,6 @@
 import json
 import re
-import google.generativeai as genai
+import requests
 from config import Config
 
 print(f"🔍 AI Service Init: GOOGLE_API_KEY length = {len(Config.GOOGLE_API_KEY) if Config.GOOGLE_API_KEY else 0}")
@@ -9,9 +9,34 @@ print(f"🔍 AI Service Init: Starts with AIza = {Config.GOOGLE_API_KEY.startswi
 print(f"🔍 AI Service Init: Starts with AQ. = {Config.GOOGLE_API_KEY.startswith('AQ.') if Config.GOOGLE_API_KEY else False}")
 print(f"🔍 AI Service Init: Has valid key = {(Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')) if Config.GOOGLE_API_KEY else False}")
 
-# Configure Gemini API
-if Config.GOOGLE_API_KEY:
-    genai.configure(api_key=Config.GOOGLE_API_KEY)
+
+def _call_gemini_api(prompt, model='gemini-2.5-flash', temperature=0.2, max_output_tokens=800, top_p=0.95, top_k=40):
+    if not Config.GOOGLE_API_KEY or not (Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')):
+        raise RuntimeError('Google API key missing or invalid. AI quiz generation is disabled.')
+
+    url = f"https://generativelanguage.googleapis.com/v1beta2/models/{model}:generate?key={Config.GOOGLE_API_KEY}"
+    payload = {
+        'prompt': {'text': prompt},
+        'temperature': temperature,
+        'max_output_tokens': max_output_tokens,
+        'top_p': top_p,
+        'top_k': top_k
+    }
+    headers = {'Content-Type': 'application/json'}
+
+    response = requests.post(url, json=payload, headers=headers, timeout=60)
+    response.raise_for_status()
+    result = response.json()
+
+    candidates = result.get('candidates') or []
+    if not candidates or not isinstance(candidates, list):
+        raise ValueError('Gemini response did not include candidates')
+
+    output = candidates[0].get('output')
+    if not output:
+        raise ValueError('Gemini response candidate missing output text')
+
+    return output.strip()
 
 
 def _extract_json_from_text(text):
@@ -119,8 +144,7 @@ def generate_quiz_from_topic(topic, num_questions=5):
     print(f"🔵 generate_quiz_from_topic called with topic='{topic}', num_questions={num_questions}")
     
     if not Config.GOOGLE_API_KEY or not (Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')):
-        print("⚠️  No valid Google API key, using mock quiz")
-        return generate_mock_quiz(topic, num_questions)
+        raise RuntimeError('Google API key missing or invalid. AI quiz generation is disabled.')
     
     try:
         print("🔵 Calling Google Gemini API...")
@@ -151,19 +175,20 @@ def generate_quiz_from_topic(topic, num_questions=5):
         For multiple_choice questions provide four distinct, plausible answer choices.
         For true_false questions use exactly: {{"true": "True", "false": "False"}}.
         Set correct_answer to one of "A", "B", "C", "D" for multiple_choice or "true"/"false" for true_false.
-        Make every question clearly about the topic and avoid unrelated subject matter.
+        Return exactly {num_questions} questions in the questions list.
+        Make every question clearly about the topic, not just a keyword rewrite of the topic.
+        Create full, meaningful answer options and mark the correct answer clearly.
         Do not include any markdown, comments, or extra text outside the JSON object."""
         
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(prompt, temperature=0.2, max_output_tokens=800)
-        response_text = response.text
-        
+        response_text = _call_gemini_api(prompt, model='gemini-2.5-flash', temperature=0.2, max_output_tokens=900)
         print(f"📝 Gemini response received: {response_text[:100]}...")
         
         response_text = _extract_json_from_text(response_text)
         quiz_data = json.loads(response_text)
         quiz_data['questions'] = [_normalize_question(q) for q in quiz_data.get('questions', [])]
         
+        if len(quiz_data.get('questions', [])) != num_questions:
+            raise ValueError(f'AI returned {len(quiz_data.get("questions", []))} questions instead of {num_questions}')
         if not _validate_quiz_data(quiz_data):
             raise ValueError('Invalid quiz JSON from AI')
 
@@ -178,12 +203,13 @@ def generate_quiz_from_topic(topic, num_questions=5):
         if related_question_count < max(1, num_questions // 2):
             print('⚠️ Topic relevance low, retrying with stronger topic constraints')
             retry_prompt = prompt + '\n\nRegenerate the quiz now, ensuring every question uses the topic or primary topic keywords in the question text.'
-            retry_response = model.generate_content(retry_prompt, temperature=0.1, max_output_tokens=800)
-            retry_text = retry_response.text
+            retry_text = _call_gemini_api(retry_prompt, model='gemini-2.5-flash', temperature=0.1, max_output_tokens=900)
             print(f"📝 Gemini retry response received: {retry_text[:100]}...")
             retry_text = _extract_json_from_text(retry_text)
             quiz_data = json.loads(retry_text)
             quiz_data['questions'] = [_normalize_question(q) for q in quiz_data.get('questions', [])]
+            if len(quiz_data.get('questions', [])) != num_questions:
+                raise ValueError(f'AI retry returned {len(quiz_data.get("questions", []))} questions instead of {num_questions}')
             if not _validate_quiz_data(quiz_data):
                 raise ValueError('Invalid quiz JSON from AI after retry')
 
@@ -202,8 +228,7 @@ def generate_quiz_from_topic(topic, num_questions=5):
         print(f"❌ Error generating quiz from topic: {str(e)}")
         import traceback
         traceback.print_exc()
-        print("⚠️  Falling back to mock quiz")
-        return generate_mock_quiz(topic, num_questions)
+        raise
 
 
 def generate_quiz_from_text(text_content, num_questions=5):
@@ -213,8 +238,7 @@ def generate_quiz_from_text(text_content, num_questions=5):
     print(f"🔵 generate_quiz_from_text called with text length={len(text_content)}, num_questions={num_questions}")
     
     if not Config.GOOGLE_API_KEY or not (Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')):
-        print("⚠️  No valid Google API key, using mock quiz")
-        return generate_mock_quiz_from_text(text_content[:500], num_questions)
+        raise RuntimeError('Google API key missing or invalid. AI quiz generation is disabled.')
     
     try:
         # Truncate text if too long
@@ -252,19 +276,19 @@ def generate_quiz_from_text(text_content, num_questions=5):
         For multiple_choice questions provide four distinct, plausible answer choices.
         For true_false questions use exactly: {{"true": "True", "false": "False"}}.
         Set correct_answer to one of "A", "B", "C", "D" for multiple_choice or "true"/"false" for true_false.
+        Return exactly {num_questions} questions in the questions list.
         Make every question clearly based on the provided text and avoid unrelated details.
         Do not include any markdown, comments, or extra text outside the JSON object."""
         
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(prompt, temperature=0.2, max_output_tokens=800)
-        response_text = response.text
-        
+        response_text = _call_gemini_api(prompt, model='gemini-2.5-flash', temperature=0.2, max_output_tokens=900)
         print(f"📝 Gemini response received: {response_text[:100]}...")
         
         response_text = _extract_json_from_text(response_text)
         quiz_data = json.loads(response_text)
         quiz_data['questions'] = [_normalize_question(q) for q in quiz_data.get('questions', [])]
         
+        if len(quiz_data.get('questions', [])) != num_questions:
+            raise ValueError(f'AI returned {len(quiz_data.get("questions", []))} questions instead of {num_questions}')
         if not _validate_quiz_data(quiz_data):
             raise ValueError('Invalid quiz JSON from AI')
 
@@ -272,12 +296,13 @@ def generate_quiz_from_text(text_content, num_questions=5):
         if related_question_count < max(1, num_questions // 2):
             print('⚠️ Document relevance low, retrying with stronger document focus')
             retry_prompt = prompt + '\n\nRegenerate the quiz now, ensuring every question is clearly based on the provided document text and nothing else.'
-            retry_response = model.generate_content(retry_prompt, temperature=0.1, max_output_tokens=800)
-            retry_text = retry_response.text
+            retry_text = _call_gemini_api(retry_prompt, model='gemini-2.5-flash', temperature=0.1, max_output_tokens=900)
             print(f"📝 Gemini retry response received: {retry_text[:100]}...")
             retry_text = _extract_json_from_text(retry_text)
             quiz_data = json.loads(retry_text)
             quiz_data['questions'] = [_normalize_question(q) for q in quiz_data.get('questions', [])]
+            if len(quiz_data.get('questions', [])) != num_questions:
+                raise ValueError(f'AI retry returned {len(quiz_data.get("questions", []))} questions instead of {num_questions}')
             if not _validate_quiz_data(quiz_data):
                 raise ValueError('Invalid quiz JSON from AI after retry')
 
@@ -294,8 +319,7 @@ def generate_quiz_from_text(text_content, num_questions=5):
     
     except Exception as e:
         print(f"❌ Error generating quiz from text: {str(e)}")
-        print("⚠️  Falling back to mock quiz from text")
-        return generate_mock_quiz_from_text(text_content[:500], num_questions)
+        raise
 
 
 def generate_mock_quiz(topic, num_questions=5):
