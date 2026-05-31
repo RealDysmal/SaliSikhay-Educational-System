@@ -12,31 +12,40 @@ print(f"🔍 AI Service Init: Has valid key = {(Config.GOOGLE_API_KEY.startswith
 
 def _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=800, top_p=0.95, top_k=40):
     if not Config.GOOGLE_API_KEY:
-        raise RuntimeError('Google API key missing or invalid. AI quiz generation is disabled.')
+        raise RuntimeError("Google API key missing or invalid.")
 
-    url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={Config.GOOGLE_API_KEY}"
+    url = (
+        f"https://generativelanguage.googleapis.com/v1/models/"
+        f"{model}:generateContent?key={Config.GOOGLE_API_KEY}"
+    )
+
     payload = {
-        'prompt': {'text': prompt},
-        'temperature': temperature,
-        'max_output_tokens': max_output_tokens,
-        'top_p': top_p,
-        'top_k': top_k
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": temperature,
+            "maxOutputTokens": max_output_tokens,
+            "topP": top_p,
+            "topK": top_k
+        }
     }
-    headers = {'Content-Type': 'application/json'}
+
+    headers = {"Content-Type": "application/json"}
 
     response = requests.post(url, json=payload, headers=headers, timeout=60)
     response.raise_for_status()
+
     result = response.json()
 
-    candidates = result.get('candidates') or []
-    if not candidates or not isinstance(candidates, list):
-        raise ValueError('Gemini response did not include candidates')
-
-    output = candidates[0].get('output')
-    if not output:
-        raise ValueError('Gemini response candidate missing output text')
-
-    return output.strip()
+    try:
+        return result["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (KeyError, IndexError, TypeError):
+        raise ValueError(f"Unexpected Gemini response format: {result}")
 
 
 def _extract_json_from_text(text):
