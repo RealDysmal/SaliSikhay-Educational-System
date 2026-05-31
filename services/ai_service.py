@@ -159,7 +159,13 @@ def generate_quiz_from_topic(topic, num_questions=5):
         print("🔵 Calling Google Gemini API...")
         
         prompt = f"""You are an expert educational content author. Create {num_questions} high-quality quiz questions about the subject \"{topic}\".
-        
+        CRITICAL RULES:
+            - Use double quotes for ALL strings and keys
+            - Do not use single quotes
+            - Do not add trailing commas
+            - Output must be valid JSON parsable by Python json.loads()
+            - Do not include JavaScript or Python syntax
+            - Do not include comments
         Return only valid JSON using this exact schema:
         {{
             "title": "Quiz title",
@@ -190,7 +196,7 @@ def generate_quiz_from_topic(topic, num_questions=5):
         Do not include any markdown, comments, or extra text outside the JSON object."""
         
         response_text = _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=900)
-        print(f"📝 Gemini response received: {response_text[:100]}...")
+        print(f"📝 Gemini response received: {response_text}...")
         
         response_text = _extract_json_from_text(response_text)
         quiz_data = json.loads(response_text)
