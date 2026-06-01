@@ -26,6 +26,7 @@ body {
     background-color: #f3e8ff;
     min-height: 100vh;
     color: #333;
+    margin: 0;
 }
 
 /* Auth Pages */
@@ -33,6 +34,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    min-height: 100vh;
     padding: 20px;
 }
 
