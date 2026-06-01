@@ -1,11 +1,7 @@
-// API Configuration
-const API_BASE_URL = (() => {
-    const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1') {
-        return 'http://localhost:5000/api';
-    }
-    return `${window.location.protocol}//${host}/api`;
-})();
+// API Configuration/ Change it to this:
+const API_BASE_URL = '/api'; 
+
+
 let authToken = localStorage.getItem('auth_token');
 
 // Authentication Functions
@@ -126,13 +122,8 @@ function checkAuth() {
     const token = localStorage.getItem('auth_token');
     if (!token) {
         const pathname = window.location.pathname;
-        // Allow access to index/login page without a token.
-        // edit-flashcards.html performs its own auth handling and must not be
-        // redirected here — the page may be reached with a valid token that
-        // hasn't been read yet when this runs.
-        const publicPages = ['/', 'index.html', 'edit-flashcards.html'];
-        const isPublicPage = publicPages.some(page => pathname === '/' + page || pathname.includes(page));
-        if (!isPublicPage) {
+        // Allow access to index, login, register pages without token
+        if (pathname !== '/' && !pathname.includes('index.html')) {
             window.location.href = 'index.html';
         }
     }

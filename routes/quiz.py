@@ -277,3 +277,118 @@ def get_attempt_details(attempt_id):
     
     except Exception as e:
         return {'error': str(e)}, 500
+
+# 1. Get Questions for Editing (Includes correct answers)
+@quiz_bp.route('/<int:quiz_id>/questions', methods=['GET'])
+@jwt_required()
+def get_quiz_questions(quiz_id):
+    try:
+        user_id = int(get_jwt_identity())
+        quiz = Quiz.query.filter_by(id=quiz_id, user_id=user_id).first()
+        if not quiz:
+            return {'error': 'Quiz not found'}, 404
+        
+        # Returns full question dict including correct answers for the editor
+        return {'questions': [q.to_dict() for q in quiz.questions]}, 200
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+# 2. Add New Flashcard
+@quiz_bp.route('/<int:quiz_id>/question', methods=['POST'])
+@jwt_required()
+def add_question(quiz_id):
+    try:
+        user_id = int(get_jwt_identity())
+        quiz = Quiz.query.filter_by(id=quiz_id, user_id=user_id).first()
+        
+        if not quiz:
+            return {'error': 'Quiz not found'}, 404
+        
+        data = request.get_json()
+        
+        # Match correct answer based on the selected index
+        correct_answer = data.get('correct_answer')
+        if 'correct_answer_index' in data and data.get('options'):
+            try:
+                idx = int(data['correct_answer_index'])
+                if 0 <= idx < len(data['options']):
+                    correct_answer = data['options'][idx]
+            except (ValueError, TypeError):
+                pass
+        
+        question = Question(
+            quiz_id=quiz_id,
+            question_text=data.get('question'),
+            question_type='multiple_choice',
+            options=data.get('options'),
+            correct_answer=correct_answer,
+            order=len(quiz.questions)
+        )
+        
+        db.session.add(question)
+        db.session.commit()
+        
+        return {'success': True, 'question': question.to_dict()}, 201
+    except Exception as e:
+        db.session.rollback()
+        return {'error': str(e)}, 500
+
+# 3. Update Existing Flashcard
+@quiz_bp.route('/question/<int:question_id>', methods=['PUT'])
+@jwt_required()
+def update_question(question_id):
+    try:
+        user_id = int(get_jwt_identity())
+        question = Question.query.get(question_id)
+        
+        if not question:
+            return {'error': 'Question not found'}, 404
+            
+        quiz = Quiz.query.filter_by(id=question.quiz_id, user_id=user_id).first()
+        if not quiz:
+            return {'error': 'Unauthorized'}, 403
+            
+        data = request.get_json()
+        
+        question.question_text = data.get('question', question.question_text)
+        question.options = data.get('options', question.options)
+        
+        correct_answer = data.get('correct_answer', question.correct_answer)
+        if 'correct_answer_index' in data and question.options:
+            try:
+                idx = int(data['correct_answer_index'])
+                if 0 <= idx < len(question.options):
+                    correct_answer = question.options[idx]
+            except (ValueError, TypeError):
+                pass
+        
+        question.correct_answer = correct_answer
+        
+        db.session.commit()
+        return {'success': True, 'question': question.to_dict()}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {'error': str(e)}, 500
+
+# 4. Delete Flashcard
+@quiz_bp.route('/question/<int:question_id>', methods=['DELETE'])
+@jwt_required()
+def delete_question(question_id):
+    try:
+        user_id = int(get_jwt_identity())
+        question = Question.query.get(question_id)
+        
+        if not question:
+            return {'error': 'Question not found'}, 404
+            
+        quiz = Quiz.query.filter_by(id=question.quiz_id, user_id=user_id).first()
+        if not quiz:
+            return {'error': 'Unauthorized'}, 403
+            
+        db.session.delete(question)
+        db.session.commit()
+        
+        return {'success': True, 'message': 'Question deleted'}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {'error': str(e)}, 500
