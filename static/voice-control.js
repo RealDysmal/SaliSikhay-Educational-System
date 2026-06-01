@@ -255,25 +255,42 @@ class VoiceAIController {
     }
 
     handleQuizCreation(command) {
+        console.log('handleQuizCreation - Raw command:', command);
+
         // Extract number of questions (if specified)
         let numQuestions = 10; // default
-        const numberMatch = command.match(/\d+/);
+        const numberMatch = command.match(/\b(\d+)\s+question/i);
         if (numberMatch) {
-            numQuestions = Math.min(Math.max(parseInt(numberMatch[0]), 1), 20); // 1-20 questions
+            numQuestions = Math.min(Math.max(parseInt(numberMatch[1]), 1), 20); // 1-20 questions
+        } else {
+            // Fall back to any standalone number in the command
+            const anyNumber = command.match(/\b(\d+)\b/);
+            if (anyNumber) {
+                numQuestions = Math.min(Math.max(parseInt(anyNumber[1]), 1), 20);
+            }
         }
 
-        // Extract topic
-        let topic = command
-            .replace(/make a|create a|make|create/gi, '')
-            .replace(/quiz about|quiz on|quiz/gi, '')
-            .replace(/\d+ question/gi, '')
-            .trim();
+        // Extract topic using a single targeted regex:
+        // Matches "about <topic>" or "on <topic>" after stripping the quiz/number preamble.
+        // e.g. "make a 5 question quiz about Python" → "Python"
+        //      "create a quiz on history"            → "history"
+        let topic = null;
 
-        if (!topic) {
+        const topicMatch = command.match(/(?:quiz\s+(?:about|on)|(?:about|on)\s+(?:a\s+)?quiz)\s+(.+)/i)
+            || command.match(/(?:about|on)\s+(.+)/i);
+
+        if (topicMatch) {
+            topic = topicMatch[1]
+                .replace(/\b\d+\s+questions?\b/gi, '') // strip "5 questions" fragments
+                .trim();
+        }
+
+        // Validate: reject undefined, empty string, or the literal string "undefined"
+        if (!topic || typeof topic !== 'string' || topic.toLowerCase() === 'undefined' || topic === '') {
             topic = 'general knowledge';
         }
 
-        console.log('Quiz creation - Topic:', topic, 'Questions:', numQuestions);
+        console.log('handleQuizCreation - Extracted topic:', topic, '| Questions:', numQuestions);
         this.confirmAndCreateQuiz(topic, numQuestions, command);
     }
 
