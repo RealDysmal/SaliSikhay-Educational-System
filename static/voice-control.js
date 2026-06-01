@@ -12,7 +12,6 @@ class VoiceAIController {
         this.currentTranscript = '';
         this.currentQuizId = null;
         this.setupSpeechRecognition();
-        this.initializeVoiceButton();
     }
 
     setupSpeechRecognition() {
@@ -126,6 +125,19 @@ class VoiceAIController {
         }
     }
 
+    startListening() {
+        if (!this.recognition) {
+            console.error('Speech Recognition not initialized');
+            return;
+        }
+        try {
+            this.recognition.start();
+            this.isListening = true;
+        } catch (error) {
+            console.error('Error starting recognition:', error);
+        }
+    }
+
     stopListening() {
         if (this.recognition && this.isListening) {
             this.recognition.abort();
@@ -194,6 +206,75 @@ class VoiceAIController {
         
         await this.speak(confirmMessage);
         await this.createQuiz(topic, numQuestions);
+    }
+
+    processVoiceCommand(transcript) {
+        if (!transcript) return;
+
+        const command = transcript.toLowerCase().trim();
+        console.log('🎤 Processing voice command:', command);
+        this.showVoiceStatus('processing');
+
+        // Quiz creation commands - with correct operator precedence
+        if ((command.includes('make') || command.includes('create')) && command.includes('quiz')) {
+            this.handleQuizCreation(command);
+        }
+        // Flashcard creation commands
+        else if (command.includes('create') && command.includes('flashcard')) {
+            this.speak('Flashcard creation feature is available in the edit flashcards page');
+            this.updateTranscript('Navigate to edit flashcards to create new cards');
+            this.showVoiceStatus('idle');
+        }
+        // Edit flashcard command
+        else if (command.includes('edit') && command.includes('flashcard')) {
+            this.speak('Redirecting to flashcard editor');
+            this.updateTranscript('Opening flashcard editor...');
+            this.showVoiceStatus('success');
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 1000);
+        }
+        // Show flashcards command
+        else if (command.includes('show') && command.includes('flashcard')) {
+            this.speak('Showing all your flashcards and quizzes');
+            this.updateTranscript('Displaying quizzes...');
+            this.showVoiceStatus('idle');
+        }
+        // Delete command
+        else if (command.includes('delete')) {
+            this.speak('Please use the delete button on the quiz card to safely remove a quiz');
+            this.updateTranscript('Use the trash icon button to delete quizzes');
+            this.showVoiceStatus('idle');
+        }
+        else {
+            const response = 'I understood: "' + transcript + '". Try saying "Make a quiz about Python" or "Show my flashcards"';
+            this.speak(response);
+            this.updateTranscript(response);
+            this.showVoiceStatus('idle');
+        }
+    }
+
+    handleQuizCreation(command) {
+        // Extract number of questions (if specified)
+        let numQuestions = 10; // default
+        const numberMatch = command.match(/\d+/);
+        if (numberMatch) {
+            numQuestions = Math.min(Math.max(parseInt(numberMatch[0]), 1), 20); // 1-20 questions
+        }
+
+        // Extract topic
+        let topic = command
+            .replace(/make a|create a|make|create/gi, '')
+            .replace(/quiz about|quiz on|quiz/gi, '')
+            .replace(/\d+ question/gi, '')
+            .trim();
+
+        if (!topic) {
+            topic = 'general knowledge';
+        }
+
+        console.log('Quiz creation - Topic:', topic, 'Questions:', numQuestions);
+        this.confirmAndCreateQuiz(topic, numQuestions, command);
     }
 
     async createQuiz(topic, numQuestions) {

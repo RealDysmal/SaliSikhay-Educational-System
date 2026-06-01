@@ -10,7 +10,13 @@ let currentUser = null;
 
 // Initialize
 async function initEditFlashcards() {
-    checkAuth();
+    // Verify auth - if not logged in, redirect
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        console.warn('No auth token found - redirecting to login');
+        window.location.href = '/index.html';
+        return;
+    }
     
     // Get user info
     const userStr = localStorage.getItem('user');
@@ -29,9 +35,13 @@ async function initEditFlashcards() {
     }
 
     // Setup event listeners
-    document.getElementById('back-btn').addEventListener('click', goBackToDashboard);
-    document.getElementById('back-to-dashboard').addEventListener('click', goBackToDashboard);
-    document.getElementById('add-flashcard-form').addEventListener('submit', handleAddFlashcard);
+    const backBtn = document.getElementById('back-btn');
+    const backToDash = document.getElementById('back-to-dashboard');
+    const addForm = document.getElementById('add-flashcard-form');
+    
+    if (backBtn) backBtn.addEventListener('click', goBackToDashboard);
+    if (backToDash) backToDash.addEventListener('click', goBackToDashboard);
+    if (addForm) addForm.addEventListener('submit', handleAddFlashcard);
 
     // Get quiz ID from URL or localStorage
     const urlParams = new URLSearchParams(window.location.search);
@@ -308,7 +318,7 @@ function updateStats() {
 // Go back to dashboard
 function goBackToDashboard() {
     localStorage.removeItem('editing_quiz_id');
-    window.location.href = '/static/dashboard.html';
+    window.location.href = 'dashboard.html';
 }
 
 // Show notification

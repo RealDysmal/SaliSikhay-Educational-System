@@ -124,8 +124,12 @@ if (loginForm) {
 // Check if user is logged in
 function checkAuth() {
     const token = localStorage.getItem('auth_token');
-    if (!token && window.location.pathname !== '/' && !window.location.pathname.endsWith('index.html')) {
-        window.location.href = 'index.html';
+    if (!token) {
+        const pathname = window.location.pathname;
+        // Allow access to index, login, register pages without token
+        if (pathname !== '/' && !pathname.includes('index.html')) {
+            window.location.href = 'index.html';
+        }
     }
 }
 
