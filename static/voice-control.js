@@ -53,6 +53,7 @@ class VoiceAIController {
 
         this.recognition.onstart = () => {
             this.isListening = true;
+            this.currentTranscript = '';
             this.showVoiceStatus('listening');
             this.updateTranscript('🎤 Listening... Speak a command');
             console.log('Voice recognition started');
@@ -63,20 +64,32 @@ class VoiceAIController {
             let finalTranscript = '';
 
             for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i].transcript;
+                const transcript = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
-                    finalTranscript += transcript + ' ';
+                    finalTranscript += transcript;
                 } else {
                     interimTranscript += transcript;
                 }
             }
 
-            this.currentTranscript = finalTranscript || interimTranscript;
-            this.updateTranscript(this.currentTranscript);
+            // Only update currentTranscript with non-empty values; never let it become undefined
+            const trimmedFinal = finalTranscript.trim();
+            const trimmedInterim = interimTranscript.trim();
 
-            if (finalTranscript) {
-                console.log('Final transcript:', finalTranscript);
-                this.processVoiceCommand(finalTranscript);
+            if (trimmedFinal) {
+                this.currentTranscript = trimmedFinal;
+            } else if (trimmedInterim) {
+                // Show interim text for live feedback but don't overwrite a final result
+                if (!this.currentTranscript) {
+                    this.currentTranscript = trimmedInterim;
+                }
+            }
+
+            this.updateTranscript(this.currentTranscript || '🎤 Listening...');
+
+            if (trimmedFinal) {
+                console.log('Final transcript:', trimmedFinal);
+                this.processVoiceCommand(trimmedFinal);
             }
         };
 
@@ -209,7 +222,8 @@ class VoiceAIController {
     }
 
     processVoiceCommand(transcript) {
-        if (!transcript) return;
+        // Reject anything that isn't a non-empty string
+        if (!transcript || typeof transcript !== 'string' || !transcript.trim()) return;
 
         const command = transcript.toLowerCase().trim();
         console.log('🎤 Processing voice command:', command);
@@ -247,7 +261,7 @@ class VoiceAIController {
             this.showVoiceStatus('idle');
         }
         else {
-            const response = 'I understood: "' + transcript + '". Try saying "Make a quiz about Python" or "Show my flashcards"';
+            const response = 'I understood: "' + command + '". Try saying "Make a quiz about Python" or "Show my flashcards"';
             this.speak(response);
             this.updateTranscript(response);
             this.showVoiceStatus('idle');
