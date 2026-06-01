@@ -308,7 +308,8 @@ function renderQuizzes(quizzes) {
                 <p class="quiz-date">${new Date(quiz.created_at).toLocaleDateString()}</p>
             </div>
             <div class="quiz-actions">
-                <button class="study-btn" onclick="startQuiz(${quiz.id})">Start Quiz</button>
+                <button class="study-btn" onclick="startQuiz(${quiz.id})">▶️ Start Quiz</button>
+                <button class="edit-btn" onclick="editFlashcards(${quiz.id})" title="Edit Flashcards">✏️ Edit</button>
                 <button class="delete-btn" onclick="deleteQuiz(${quiz.id})" title="Delete Quiz">🗑️</button>
             </div>
         </div>
@@ -376,6 +377,12 @@ async function deleteQuiz(quizId) {
     } catch (error) {
         showNotification('Error deleting quiz', 'error');
     }
+}
+
+// Edit Flashcards
+function editFlashcards(quizId) {
+    localStorage.setItem('editing_quiz_id', quizId);
+    window.location.href = `edit-flashcards.html?quiz_id=${quizId}`;
 }
 
 // Load Statistics

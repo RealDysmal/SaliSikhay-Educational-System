@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#7e22ce">
+    <title>Edit Flashcards - SaliSikhayAI</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .edit-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9d5ff;
+        }
+
+        .edit-header h2 {
+            font-size: 28px;
+            color: #7e22ce;
+            margin: 0;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background-color: #f3e8ff;
+            color: #7e22ce;
+            border: 2px solid #7e22ce;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background-color: #7e22ce;
+            color: white;
+        }
+
+        .editor-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #5b21b6;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flashcard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .flashcard-item {
+            background: #f9f5ff;
+            border: 2px solid #e9d5ff;
+            border-radius: 8px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: start;
+            transition: all 0.3s;
+        }
+
+        .flashcard-item:hover {
+            border-color: #c084fc;
+            box-shadow: 0 2px 8px rgba(126, 34, 206, 0.1);
+        }
+
+        .flashcard-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .card-field label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b21a8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-field input,
+        .card-field textarea {
+            padding: 10px 12px;
+            border: 1px solid #d8b4fe;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .card-field input:focus,
+        .card-field textarea:focus {
+            outline: none;
+            border-color: #7e22ce;
+            box-shadow: 0 0 0 3px rgba(126, 34, 206, 0.1);
+        }
+
+        .card-field textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .save-btn {
+            background-color: #7e22ce;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background-color: #6b21a8;
+            transform: translateY(-2px);
+        }
+
+        .delete-btn {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+
+        .add-section {
+            background: #f9f5ff;
+            border: 2px dashed #c084fc;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b21a8;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 12px 14px;
+            border: 1px solid #d8b4fe;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .primary-btn,
+        .secondary-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .primary-btn {
+            background-color: #7e22ce;
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background-color: #6b21a8;
+            transform: translateY(-2px);
+        }
+
+        .secondary-btn {
+            background-color: #e9d5ff;
+            color: #7e22ce;
+            border: 1px solid #c084fc;
+        }
+
+        .secondary-btn:hover {
+            background-color: #d8b4fe;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #9333ea;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .stats-bar {
+            background: linear-gradient(135deg, #7e22ce 0%, #9333ea 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .stat {
+            flex: 1;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: #7e22ce;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e9d5ff;
+            border-top-color: #7e22ce;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification.success {
+            border-left: 4px solid #10b981;
+            color: #10b981;
+        }
+
+        .notification.error {
+            border-left: 4px solid #ef4444;
+            color: #ef4444;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .flashcard-item {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .form-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="logo">⚡ SaliSikh<span>AI</span></h1>
+            <div class="user-profile">
+                <span id="welcome-message">Welcome, User</span>
+                <button id="back-to-dashboard" class="logout-link">Back to Dashboard</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="edit-container">
+        <div class="edit-header">
+            <h2>📚 Edit Flashcards</h2>
+            <button class="back-btn" id="back-btn">← Back</button>
+        </div>
+
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat">
+                <span class="stat-number" id="total-cards">0</span>
+                <span class="stat-label">Total Cards</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number" id="quiz-title">Quiz</span>
+                <span class="stat-label">Current Quiz</span>
+            </div>
+        </div>
+
+        <!-- Current Flashcards -->
+        <div class="editor-section">
+            <div class="section-title">📋 Your Flashcards</div>
+            <div id="flashcards-container" class="flashcard-list">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading flashcards...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add New Flashcard -->
+        <div class="editor-section">
+            <div class="section-title">➕ Add New Flashcard</div>
+            <div class="add-section">
+                <form id="add-flashcard-form">
+                    <div class="form-group">
+                        <label for="new-question">Question/Prompt *</label>
+                        <textarea id="new-question" placeholder="Enter the question or prompt..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new-answer">Answer *</label>
+                        <textarea id="new-answer" placeholder="Enter the correct answer..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new-options">Options (comma-separated) *</label>
+                        <textarea id="new-options" placeholder="e.g., Option A, Option B, Option C, Option D" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new-correct-option">Correct Option (1-4) *</label>
+                        <select id="new-correct-option" required style="padding: 12px 14px; border: 1px solid #d8b4fe; border-radius: 6px;">
+                            <option value="">Select correct option</option>
+                            <option value="1">Option 1</option>
+                            <option value="2">Option 2</option>
+                            <option value="3">Option 3</option>
+                            <option value="4">Option 4</option>
+                        </select>
+                    </div>
+
+                    <div class="form-buttons">
+                        <button type="submit" class="primary-btn">✨ Add Flashcard</button>
+                        <button type="reset" class="secondary-btn">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/app.js"></script>
+    <script src="/static/edit-flashcards.js"></script>
+</body>
+</html>

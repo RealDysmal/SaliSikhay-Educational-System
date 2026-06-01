@@ -316,6 +316,30 @@ body {
     gap: 15px;
 }
 
+.voice-btn {
+    background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.voice-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(126, 34, 206, 0.3);
+}
+
+.voice-btn:active {
+    transform: translateY(0);
+}
+
 .logout-link {
     background: transparent;
     border: 1px solid var(--primary);
@@ -608,6 +632,24 @@ body {
 .study-btn:hover {
     background-color: var(--primary);
     color: white;
+}
+
+.edit-btn {
+    background-color: #fef3c7;
+    border: 1px solid #fbbf24;
+    color: #d97706;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.edit-btn:hover {
+    background-color: #fbbf24;
+    color: white;
+    transform: translateY(-2px);
 }
 
 .delete-btn {

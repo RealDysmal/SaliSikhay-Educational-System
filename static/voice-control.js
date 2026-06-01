@@ -1,15 +1,18 @@
 /**
- * Voice Control for Quiz Creation
- * Allows users to say commands like "Make me a 10 question quiz about Python"
+ * Voice Control with AI Integration for Flashcard Management
+ * Allows users to create, edit, and manage flashcards via voice commands
+ * Commands: "Create flashcard...", "Edit flashcard...", "Delete flashcard...", "Show my flashcards"
  */
 
-class VoiceQuizCreator {
+class VoiceAIController {
     constructor() {
         this.recognition = null;
         this.isListening = false;
         this.synth = window.speechSynthesis;
-        this.setupSpeechRecognition();
         this.currentTranscript = '';
+        this.currentQuizId = null;
+        this.setupSpeechRecognition();
+        this.initializeVoiceButton();
     }
 
     setupSpeechRecognition() {
@@ -17,6 +20,7 @@ class VoiceQuizCreator {
         
         if (!SpeechRecognition) {
             console.error('Speech Recognition not supported in this browser');
+            this.showVoiceStatus('Voice not supported', 'error');
             return;
         }
 
@@ -28,13 +32,30 @@ class VoiceQuizCreator {
         this.setupListeners();
     }
 
+    initializeVoiceButton() {
+        // Create voice control button if it doesn't exist
+        let voiceBtn = document.getElementById('voice-control-btn');
+        if (!voiceBtn) {
+            const nav = document.querySelector('.navbar');
+            if (nav) {
+                voiceBtn = document.createElement('button');
+                voiceBtn.id = 'voice-control-btn';
+                voiceBtn.className = 'voice-btn';
+                voiceBtn.innerHTML = '🎤 Voice Command';
+                voiceBtn.style.marginRight = '10px';
+                nav.appendChild(voiceBtn);
+                voiceBtn.addEventListener('click', () => this.toggleVoiceControl());
+            }
+        }
+    }
+
     setupListeners() {
         if (!this.recognition) return;
 
         this.recognition.onstart = () => {
             this.isListening = true;
-            this.updateStatus('listening');
-            this.updateTranscript('Listening...');
+            this.showVoiceStatus('listening');
+            this.updateTranscript('🎤 Listening... Speak a command');
             console.log('Voice recognition started');
         };
 
@@ -56,6 +77,7 @@ class VoiceQuizCreator {
 
             if (finalTranscript) {
                 console.log('Final transcript:', finalTranscript);
+                this.processVoiceCommand(finalTranscript);
             }
         };
 
@@ -82,7 +104,7 @@ class VoiceQuizCreator {
                     errorMessage += event.error;
             }
             
-            this.updateStatus('error');
+            this.showVoiceStatus('error');
             this.updateTranscript(errorMessage);
             this.speak(errorMessage);
         };
@@ -90,93 +112,85 @@ class VoiceQuizCreator {
         this.recognition.onend = () => {
             this.isListening = false;
             if (!this.currentTranscript) {
-                this.updateStatus('idle');
+                this.showVoiceStatus('idle');
             }
             console.log('Voice recognition ended');
         };
     }
 
-    startListening() {
-        if (!this.recognition) {
-            this.speak('Speech recognition not supported in your browser');
-            return;
-        }
-
-        // If already listening, stop it
+    toggleVoiceControl() {
         if (this.isListening) {
-            console.log('Already listening, stopping...');
-            this.recognition.abort();
-            this.isListening = false;
-            return;
-        }
-
-        try {
-            this.currentTranscript = '';
-            this.updateTranscript('');
-            this.recognition.start();
-            this.isListening = true;
-        } catch (error) {
-            console.error('Error starting recognition:', error.message);
-            this.isListening = false;
-            this.updateStatus('error');
-            this.updateTranscript('Error starting microphone');
+            this.stopListening();
+        } else {
+            this.startListening();
         }
     }
 
-    parseCommand(transcript) {
-        transcript = transcript.toLowerCase().trim();
-        
-        // Default values
-        let numQuestions = 5;
-        let topic = '';
-
-        // Extract number of questions
-        const numberMatch = transcript.match(/\b(\d+)\s*(?:question|q)(?:uestion)?s?\b/i);
-        if (numberMatch) {
-            numQuestions = parseInt(numberMatch[1]);
-            numQuestions = Math.min(Math.max(numQuestions, 1), 20);
+    stopListening() {
+        if (this.recognition && this.isListening) {
+            this.recognition.abort();
+            this.isListening = false;
+            this.showVoiceStatus('idle');
         }
+    }
 
-        // Try to extract topic from common patterns
-        let topicMatch = transcript.match(/(?:about|on|regarding|for)\s+([a-z\s]+?)(?:\s+with|\s*$)/i);
-        
-        if (!topicMatch) {
-            // Try "quiz about..." or "quiz for..."
-            topicMatch = transcript.match(/quiz\s+(?:about|on|for)\s+([a-z\s]+?)(?:\s+with|\s*$)?$/i);
-        }
-
-        if (topicMatch) {
-            topic = topicMatch[1].trim();
-        }
-
-        // Fallback: use last few words if no topic found
-        if (!topic) {
-            const words = transcript
-                .replace(/make|create|quiz|question|questions|about|on|regarding|for|a|an|with|me/gi, '')
-                .trim()
-                .split(/\s+/)
-                .filter(w => w.length > 2);
-            
-            if (words.length > 0) {
-                topic = words.slice(-3).join(' ');
+    speak(text, callback = null) {
+        return new Promise((resolve) => {
+            if (!this.synth) {
+                resolve();
+                return;
             }
-        }
 
-        if (topic) {
-            this.confirmAndCreateQuiz(topic, numQuestions, transcript);
-        } else {
-            this.updateStatus('error');
-            this.speak('I could not understand the topic. Please say something like: Make a 10 question quiz about Python');
-            this.updateTranscript('Could not parse topic from: ' + transcript);
+            this.synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            const finishHandler = () => {
+                if (callback) callback();
+                resolve();
+            };
+
+            utterance.onend = finishHandler;
+            utterance.onerror = finishHandler;
+
+            this.synth.speak(utterance);
+        });
+    }
+
+    showVoiceStatus(status) {
+        const badge = document.querySelector('.voice-status-badge');
+        if (!badge) return;
+
+        badge.className = 'voice-status-badge ' + status;
+
+        const statusTexts = {
+            'idle': '🎤 Ready',
+            'listening': '🎧 Listening...',
+            'processing': '⚙️ Processing...',
+            'creating': '⚙️ Creating...',
+            'success': '✓ Success!',
+            'error': '✗ Error'
+        };
+
+        badge.textContent = statusTexts[status] || status;
+    }
+
+    updateTranscript(text) {
+        const transcript = document.querySelector('.voice-transcript');
+        if (transcript) {
+            transcript.textContent = text;
+            transcript.scrollTop = transcript.scrollHeight;
         }
     }
 
     async confirmAndCreateQuiz(topic, numQuestions, originalCommand) {
-        this.updateStatus('creating');
+        this.showVoiceStatus('creating');
         
         const confirmMessage = `Creating a ${numQuestions} question quiz about ${topic}`;
         console.log('Confirmation:', confirmMessage);
-        this.updateTranscript(`${confirmMessage}`);
+        this.updateTranscript(confirmMessage);
         
         await this.speak(confirmMessage);
         await this.createQuiz(topic, numQuestions);
@@ -185,16 +199,15 @@ class VoiceQuizCreator {
     async createQuiz(topic, numQuestions) {
         if (typeof apiCall !== 'function') {
             console.error('apiCall function not found');
-            this.updateStatus('error');
+            this.showVoiceStatus('error');
             this.speak('Error: API not available');
             return;
         }
 
-        // Check for token
         const token = localStorage.getItem('auth_token');
         if (!token) {
             console.error('No auth token found');
-            this.updateStatus('error');
+            this.showVoiceStatus('error');
             this.speak('Error: Not logged in. Please log in first.');
             this.updateTranscript('Error: Not logged in');
             return;
@@ -221,7 +234,6 @@ class VoiceQuizCreator {
                 throw new Error('No quiz created');
             }
 
-            // Start new quiz attempt immediately after voice creation
             const attemptResult = await apiCall(`/quiz/attempt/start/${quizId}`, 'POST');
             if (attemptResult.error || !attemptResult.attempt) {
                 console.warn('Unable to start quiz attempt automatically:', attemptResult);
@@ -232,7 +244,7 @@ class VoiceQuizCreator {
             localStorage.setItem('current_attempt', JSON.stringify(attemptResult.attempt));
 
             console.log('✅ Quiz created and attempt started:', response, attemptResult);
-            this.updateStatus('success');
+            this.showVoiceStatus('success');
             this.speak(`Quiz created and ready. Starting your ${numQuestions} question quiz about ${topic}`);
             this.updateTranscript(`✓ Quiz created and attempt started`);
             
@@ -241,7 +253,7 @@ class VoiceQuizCreator {
             }, 1500);
         } catch (error) {
             console.error('❌ Quiz creation error:', error.message, error);
-            this.updateStatus('error');
+            this.showVoiceStatus('error');
             
             let errorMsg = error.message;
             if (errorMsg.includes('Network')) {
@@ -252,68 +264,14 @@ class VoiceQuizCreator {
             this.updateTranscript(`Error: ${errorMsg}`);
         }
     }
-
-    speak(text, callback = null) {
-        return new Promise((resolve) => {
-            if (!this.synth) {
-                resolve();
-                return;
-            }
-
-            // Cancel any ongoing speech
-            this.synth.cancel();
-
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1;
-            utterance.pitch = 1;
-            utterance.volume = 1;
-
-            const finishHandler = () => {
-                if (callback) {
-                    callback();
-                }
-                resolve();
-            };
-
-            utterance.onend = finishHandler;
-            utterance.onerror = finishHandler;
-
-            this.synth.speak(utterance);
-        });
-    }
-
-    updateStatus(status) {
-        const badge = document.querySelector('.voice-status-badge');
-        if (!badge) return;
-
-        badge.className = 'voice-status-badge ' + status;
-
-        const statusTexts = {
-            'idle': '🎤 Ready',
-            'listening': '🎧 Listening...',
-            'creating': '⚙️ Creating Quiz...',
-            'success': '✓ Success!',
-            'error': '✗ Error'
-        };
-
-        badge.textContent = statusTexts[status] || status;
-    }
-
-    updateTranscript(text) {
-        const transcript = document.querySelector('.voice-transcript');
-        if (transcript) {
-            transcript.textContent = text;
-            transcript.scrollTop = transcript.scrollHeight;
-        }
-    }
 }
 
+
 // Global instance
-let voiceQuizCreator = null;
+let voiceAIController = null;
 
 // Create UI
 function createVoiceControlUI() {
-    // Check if already created
     if (document.getElementById('voice-control-container')) {
         return;
     }
@@ -327,10 +285,10 @@ function createVoiceControlUI() {
     const micBtn = document.createElement('button');
     micBtn.className = 'voice-mic-btn';
     micBtn.innerHTML = '🎤';
-    micBtn.title = 'Voice Control - Say: "Make me a 10 question quiz about [topic]"';
+    micBtn.title = 'Voice Control - Say: "Create flashcard" or "Make a quiz about..."';
     micBtn.onclick = () => {
-        if (voiceQuizCreator) {
-            voiceQuizCreator.startListening();
+        if (voiceAIController) {
+            voiceAIController.toggleVoiceControl();
         }
     };
 
@@ -343,7 +301,7 @@ function createVoiceControlUI() {
 
     const transcript = document.createElement('div');
     transcript.className = 'voice-transcript';
-    transcript.textContent = 'Click mic to start';
+    transcript.textContent = 'Click mic to start speaking commands';
 
     info.appendChild(badge);
     info.appendChild(transcript);
@@ -356,42 +314,40 @@ function createVoiceControlUI() {
 }
 
 // Initialize
-function initVoiceQuizCreator() {
+function initVoiceAIController() {
     if (typeof apiCall !== 'function') {
         console.warn('apiCall not ready, deferring voice control init');
         return;
     }
 
     createVoiceControlUI();
-    voiceQuizCreator = new VoiceQuizCreator();
+    voiceAIController = new VoiceAIController();
     
-    console.log('Voice Quiz Creator initialized');
+    console.log('✅ Voice AI Controller initialized');
 }
 
 // Auto-initialize on dashboard
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof apiCall === 'function') {
-        initVoiceQuizCreator();
+        initVoiceAIController();
     } else {
-        // Wait for apiCall to be defined
         const checkInterval = setInterval(() => {
             if (typeof apiCall === 'function') {
                 clearInterval(checkInterval);
-                initVoiceQuizCreator();
+                initVoiceAIController();
             }
         }, 100);
         
-        // Timeout after 5 seconds
         setTimeout(() => clearInterval(checkInterval), 5000);
     }
 });
 
-// Export test function for console use
+// Export for console testing
 window.testVoiceCommand = function(command) {
-    if (!voiceQuizCreator) {
-        console.error('Voice Quiz Creator not initialized');
+    if (!voiceAIController) {
+        console.error('Voice AI Controller not initialized');
         return;
     }
     console.log('Testing command:', command);
-    voiceQuizCreator.parseCommand(command);
+    voiceAIController.processVoiceCommand(command);
 };
