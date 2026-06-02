@@ -39,10 +39,9 @@ body {
 }
 
 .auth-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    max-width: 1000px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
 }
 
@@ -58,6 +57,8 @@ body {
     padding: 40px;
     border-radius: 16px;
     box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 450px;
 }
 
 .logo-section {
@@ -1364,7 +1365,6 @@ body {
 .voice-status-badge.creating {
     color: #f57c00;
     background: #fff3e0;
-    animation: spin 1s linear infinite;
 }
 
 .voice-status-badge.success {
