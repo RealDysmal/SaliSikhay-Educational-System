@@ -3,18 +3,15 @@ import re
 import requests
 from config import Config
 
-print(f"🔍 AI Service Init: GOOGLE_API_KEY length = {len(Config.GOOGLE_API_KEY) if Config.GOOGLE_API_KEY else 0}")
-print(f"🔍 AI Service Init: Raw key = '{Config.GOOGLE_API_KEY}'")
-print(f"🔍 AI Service Init: Starts with AIza = {Config.GOOGLE_API_KEY.startswith('AIza') if Config.GOOGLE_API_KEY else False}")
-print(f"🔍 AI Service Init: Starts with AQ. = {Config.GOOGLE_API_KEY.startswith('AQ.') if Config.GOOGLE_API_KEY else False}")
-print(f"🔍 AI Service Init: Has valid key = {(Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')) if Config.GOOGLE_API_KEY else False}")
+# Debug logs
+print(f"🔍 AI Service Init: GOOGLE_API_KEY exists = {bool(Config.GOOGLE_API_KEY)}")
 
-response = model.generate_content(
-    prompt,
-    request_options={"timeout": 120} 
-)
+if Config.GOOGLE_API_KEY:
+    print(f"🔍 Key starts with AIza = {Config.GOOGLE_API_KEY.startswith('AIza')}")
+else:
+    print("❌ GOOGLE_API_KEY is missing")
 
-def _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=800, top_p=0.95, top_k=40):
+def _call_gemini_api(prompt, model='gemini-1.5-flash', temperature=0.2, max_output_tokens=800, top_p=0.95, top_k=40):
     if not Config.GOOGLE_API_KEY:
         raise RuntimeError("Google API key missing or invalid.")
 
@@ -302,8 +299,7 @@ def generate_quiz_from_text(text_content, num_questions=5):
         response_text = _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=900)
         print(f"📝 Gemini response received: {response_text[:100]}...")
         
-        response_text = _extract_json_from_text(response_text)
-        quiz_data = json.loads(response_text)
+        quiz_data = _extract_json_from_text(response_text)
         quiz_data['questions'] = [_normalize_question(q) for q in quiz_data.get('questions', [])]
         
         if len(quiz_data.get('questions', [])) != num_questions:
@@ -317,8 +313,7 @@ def generate_quiz_from_text(text_content, num_questions=5):
             retry_prompt = prompt + '\n\nRegenerate the quiz now, ensuring every question is clearly based on the provided document text and nothing else.'
             retry_text = _call_gemini_api(retry_prompt, model='gemini-3.5-flash', temperature=0.1, max_output_tokens=900)
             print(f"📝 Gemini retry response received: {retry_text[:100]}...")
-            retry_text = _extract_json_from_text(retry_text)
-            quiz_data = json.loads(retry_text)
+            quiz_data = _extract_json_from_text(retry_text)
             quiz_data['questions'] = [_normalize_question(q) for q in quiz_data.get('questions', [])]
             if len(quiz_data.get('questions', [])) != num_questions:
                 raise ValueError(f'AI retry returned {len(quiz_data.get("questions", []))} questions instead of {num_questions}')
