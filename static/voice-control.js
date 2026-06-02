@@ -222,46 +222,45 @@ class VoiceAIController {
     }
 
     processVoiceCommand(transcript) {
-        // Reject anything that isn't a non-empty string
         if (!transcript || typeof transcript !== 'string' || !transcript.trim()) return;
 
         const command = transcript.toLowerCase().trim();
         console.log('🎤 Processing voice command:', command);
         this.showVoiceStatus('processing');
 
-        // Quiz creation commands - with correct operator precedence
+        // 1. MAKE AI QUIZ
         if ((command.includes('make') || command.includes('create')) && command.includes('quiz')) {
             this.handleQuizCreation(command);
         }
-        // Flashcard creation commands
+        // 2. CREATE/ADD FLASHCARD
         else if (command.includes('create') && command.includes('flashcard')) {
-            this.speak('Flashcard creation feature is available in the edit flashcards page');
-            this.updateTranscript('Navigate to edit flashcards to create new cards');
+            if (window.location.href.includes('edit-flashcards')) {
+                const submitBtn = document.querySelector('#add-flashcard-form button[type="submit"]');
+                if (submitBtn) {
+                    this.speak('Attempting to add flashcard.');
+                    submitBtn.click(); // This will trigger the form submission
+                }
+            } else {
+                this.speak('Please navigate to the edit flashcards page first.');
+            }
             this.showVoiceStatus('idle');
         }
-        // Edit flashcard command
+        // 3. EDIT FLASHCARD
         else if (command.includes('edit') && command.includes('flashcard')) {
-            this.speak('Redirecting to flashcard editor');
-            this.updateTranscript('Opening flashcard editor...');
-            this.showVoiceStatus('success');
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 1000);
-        }
-        // Show flashcards command
-        else if (command.includes('show') && command.includes('flashcard')) {
-            this.speak('Showing all your flashcards and quizzes');
-            this.updateTranscript('Displaying quizzes...');
+            if (window.location.href.includes('dashboard')) {
+                this.speak('Please click the edit button on the specific quiz you want to modify.');
+            } else {
+                this.speak('You are already on the edit page. Update the text boxes and click save.');
+            }
             this.showVoiceStatus('idle');
         }
-        // Delete command
+        // 4. DELETE
         else if (command.includes('delete')) {
-            this.speak('Please use the delete button on the quiz card to safely remove a quiz');
-            this.updateTranscript('Use the trash icon button to delete quizzes');
+            this.speak('For your security, please click the delete button manually to prevent accidental data loss.');
             this.showVoiceStatus('idle');
         }
         else {
-            const response = 'I understood: "' + command + '". Try saying "Make a quiz about Python" or "Show my flashcards"';
+            const response = 'I understood: "' + command + '". Try saying "Make a quiz about Science"';
             this.speak(response);
             this.updateTranscript(response);
             this.showVoiceStatus('idle');

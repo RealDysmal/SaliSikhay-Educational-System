@@ -9,6 +9,10 @@ print(f"🔍 AI Service Init: Starts with AIza = {Config.GOOGLE_API_KEY.startswi
 print(f"🔍 AI Service Init: Starts with AQ. = {Config.GOOGLE_API_KEY.startswith('AQ.') if Config.GOOGLE_API_KEY else False}")
 print(f"🔍 AI Service Init: Has valid key = {(Config.GOOGLE_API_KEY.startswith('AIza') or Config.GOOGLE_API_KEY.startswith('AQ.')) if Config.GOOGLE_API_KEY else False}")
 
+response = model.generate_content(
+    prompt,
+    request_options={"timeout": 120} 
+)
 
 def _call_gemini_api(prompt, model='gemini-3.5-flash', temperature=0.2, max_output_tokens=800, top_p=0.95, top_k=40):
     if not Config.GOOGLE_API_KEY:
