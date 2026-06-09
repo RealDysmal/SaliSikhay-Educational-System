@@ -309,7 +309,6 @@ function renderQuizzes(quizzes) {
             </div>
             <div class="quiz-actions">
                 <button class="study-btn" onclick="startQuiz(${quiz.id})">▶️ Start Quiz</button>
-                <button class="edit-btn" onclick="editFlashcards(${quiz.id})" title="Edit Flashcards">✏️ Edit</button>
                 <button class="delete-btn" onclick="deleteQuiz(${quiz.id})" title="Delete Quiz">🗑️</button>
             </div>
         </div>
